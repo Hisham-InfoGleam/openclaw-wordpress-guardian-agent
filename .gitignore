@@ -1,0 +1,36 @@
+# Private documentation (ALWAYS ignore)
+docs/private/
+docs/agent/
+docs/RAG/
+docs/public/release-cadence.md
+articles/
+notes/
+RAG Resources/
+*.secret.md
+*.private.md
+*.local.md
+*.internal.md
+*.agent.md
+INTERNAL-*.md
+*-INTERNAL.md
+*-PRIVATE.md
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+secrets/
+
+# Node.js artifacts
+node_modules/
+dist/
+coverage/
+.tsbuildinfo
+
+# Prisma
+.turbo/
+.cache/
+
+# Local-only agent instructions (never publish)
+.github/copilot-instructions.md
+.github/instructions/
