@@ -49,10 +49,11 @@ See the detailed plan in:
 1. Go to `automation-api/`.
 2. Copy `.env.example` to `.env` and set real values.
 3. Install dependencies with `npm install`.
-4. Start API in dev mode with `npm run dev`.
-5. Configure WordPress webhook to `POST /hooks/wp-comment` with shared HMAC secret.
-6. Configure Telegram bot webhook to `POST /telegram/callback`.
-7. Submit test comments and verify Telegram + WordPress status updates.
+4. Validate configuration with `npm run check:env`.
+5. Start API in dev mode with `npm run dev`.
+6. Configure WordPress webhook to `POST /hooks/wp-comment` with shared HMAC secret.
+7. Configure Telegram bot webhook to `POST /telegram/callback`.
+8. Submit test comments and verify Telegram + WordPress status updates.
 
 ## Repository Status
 

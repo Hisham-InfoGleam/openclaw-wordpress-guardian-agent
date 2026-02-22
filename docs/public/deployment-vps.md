@@ -38,6 +38,13 @@ Create `.env` with production values:
 - `AUTO_APPROVE_THRESHOLD=0.8`
 - `AUTO_BLOCK_THRESHOLD=0.95`
 
+Validate environment before restart:
+
+```bash
+cd /opt/openclaw-wordpress-guardian-agent/automation-api
+npm run check:env
+```
+
 ## 3) Process Manager (systemd)
 
 Create `/etc/systemd/system/openclaw-guardian.service`:
@@ -68,6 +75,14 @@ sudo systemctl daemon-reload
 sudo systemctl enable openclaw-guardian
 sudo systemctl restart openclaw-guardian
 sudo systemctl status openclaw-guardian
+```
+
+Post-restart quick checks:
+
+```bash
+sudo systemctl is-active openclaw-guardian
+curl -fsS https://api.yourdomain.com/health
+journalctl -u openclaw-guardian -n 50 --no-pager
 ```
 
 ## 4) Reverse Proxy + HTTPS (Nginx)
