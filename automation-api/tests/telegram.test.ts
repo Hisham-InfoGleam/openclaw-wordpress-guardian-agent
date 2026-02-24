@@ -5,10 +5,12 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 const processWpCommentWebhookMock = vi.fn(async () => undefined);
 const applyModeratorDecisionMock = vi.fn(async () => undefined);
 const answerTelegramCallbackMock = vi.fn(async () => undefined);
+const isWordPressUpdateErrorMock = vi.fn(() => false);
 
 vi.mock("../src/services/moderation-service", () => ({
   processWpCommentWebhook: processWpCommentWebhookMock,
-  applyModeratorDecision: applyModeratorDecisionMock
+  applyModeratorDecision: applyModeratorDecisionMock,
+  isWordPressUpdateError: isWordPressUpdateErrorMock
 }));
 
 vi.mock("../src/clients/telegram-client", () => ({
@@ -25,7 +27,7 @@ function configureTestEnv(): void {
   process.env.WP_APP_PASSWORD = "test-password";
   process.env.TELEGRAM_BOT_TOKEN = "test-token";
   process.env.TELEGRAM_CHAT_ID = "12345";
-  process.env.TELEGRAM_WEBHOOK_SECRET = "telegram-secret-123";
+  process.env.TELEGRAM_WEBHOOK_SECRET = "testvalue";
   process.env.AUTO_APPROVE_THRESHOLD = "0.8";
   process.env.AUTO_BLOCK_THRESHOLD = "0.95";
 }
@@ -58,7 +60,7 @@ describe("POST /telegram/callback", () => {
 
     const response = await request(app)
       .post("/telegram/callback")
-      .set("x-telegram-bot-api-secret-token", "telegram-secret-123")
+      .set("x-telegram-bot-api-secret-token", process.env.TELEGRAM_WEBHOOK_SECRET as string)
       .send(payload);
 
     expect(response.status).toBe(400);
@@ -83,7 +85,7 @@ describe("POST /telegram/callback", () => {
 
     const response = await request(app)
       .post("/telegram/callback")
-      .set("x-telegram-bot-api-secret-token", "telegram-secret-123")
+      .set("x-telegram-bot-api-secret-token", process.env.TELEGRAM_WEBHOOK_SECRET as string)
       .send(payload);
 
     expect(response.status).toBe(200);
@@ -108,7 +110,7 @@ describe("POST /telegram/callback", () => {
 
     const response = await request(app)
       .post("/telegram/callback")
-      .set("x-telegram-bot-api-secret-token", "telegram-secret-123")
+      .set("x-telegram-bot-api-secret-token", process.env.TELEGRAM_WEBHOOK_SECRET as string)
       .send(payload);
 
     expect(response.status).toBe(200);
@@ -136,5 +138,35 @@ describe("POST /telegram/callback", () => {
     expect(response.status).toBe(401);
     expect(response.body.error).toBe("invalid_telegram_secret");
     expect(applyModeratorDecisionMock).not.toHaveBeenCalled();
+  });
+
+  it("returns 502 and clear error when WordPress auth fails", async () => {
+    applyModeratorDecisionMock.mockRejectedValueOnce({ status: 401 });
+    isWordPressUpdateErrorMock.mockReturnValueOnce(true);
+
+    const payload = {
+      callback_query: {
+        id: "cb-auth-fail",
+        data: "r|555|a",
+        message: {
+          message_id: 16,
+          chat: {
+            id: 777
+          }
+        }
+      }
+    };
+
+    const response = await request(app)
+      .post("/telegram/callback")
+      .set("x-telegram-bot-api-secret-token", process.env.TELEGRAM_WEBHOOK_SECRET as string)
+      .send(payload);
+
+    expect(response.status).toBe(502);
+    expect(response.body.error).toBe("wordpress_auth_failed");
+    expect(answerTelegramCallbackMock).toHaveBeenCalledWith(
+      "cb-auth-fail",
+      "WordPress auth failed. Check WP_APP_USERNAME and WP_APP_PASSWORD."
+    );
   });
 });

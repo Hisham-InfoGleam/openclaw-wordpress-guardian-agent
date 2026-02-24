@@ -49,6 +49,14 @@ Set production values in server `.env` (never commit real secrets):
 - [ ] `needs_review` sends Telegram message with action buttons.
 - [ ] Telegram action updates WordPress comment status.
 
+## E.1) WordPress 401/403 Troubleshooting (Auth Mismatch)
+
+- [ ] Confirm `WP_BASE_URL` points to the same WordPress instance receiving webhook events.
+- [ ] Verify `WP_APP_USERNAME` belongs to an active WordPress user with comment moderation privileges.
+- [ ] Regenerate `WP_APP_PASSWORD` and update server environment if any credential drift is suspected.
+- [ ] Restart API process after env updates and run `npm run check:env`.
+- [ ] Re-test one Telegram callback and one auto decision path to confirm status updates succeed.
+
 ## F) Security and Release Gates
 
 - [ ] `npm audit` reports no known vulnerabilities.

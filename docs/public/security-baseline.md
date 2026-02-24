@@ -34,10 +34,17 @@
 ## Deployment Rules
 
 - Rotate Application Password and webhook secret on schedule.
+- On WordPress `401/403` update failures, treat as auth mismatch first and rotate the Application Password before broader debugging.
 - Disable unused ports and services on VPS.
 - Keep OS packages updated.
 - Restrict SSH and use key-based auth.
 - Keep OpenClaw gateway bound to loopback/tailnet and avoid exposing it publicly without strict auth.
+
+## WordPress Action-Path Hardening
+
+- Use a dedicated Application Password per environment (dev/staging/prod), never shared across sites.
+- Keep `WP_BASE_URL`, `WP_APP_USERNAME`, and `WP_APP_PASSWORD` updated as a single unit.
+- If auto-apply fails, require manual review fallback and alerting so moderation flow does not silently drop decisions.
 
 ## Developer Guardrails
 

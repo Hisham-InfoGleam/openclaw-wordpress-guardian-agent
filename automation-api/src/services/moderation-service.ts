@@ -1,9 +1,49 @@
 import { sendReviewRequest } from "../clients/telegram-client";
-import { updateWordPressCommentStatus } from "../clients/wordpress-client";
+import { isWordPressAuthFailure, updateWordPressCommentStatus, WordPressUpdateError } from "../clients/wordpress-client";
 import { ModerationDecision } from "../skills/moderation-skill";
 import { WpCommentWebhook } from "../schemas/wp-comment";
 import { selectModeration } from "./moderation-provider";
 import { log } from "../utils/logger";
+
+async function applyAutoDecision(input: {
+  commentId: number;
+  decision: "approve" | "block";
+  eventId: string;
+  site: string;
+  content: string;
+  reason: string;
+  signals: string[];
+  correlationId: string;
+}): Promise<void> {
+  try {
+    await updateWordPressCommentStatus(input.commentId, input.decision);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown WordPress update error";
+    const authFailure = isWordPressAuthFailure(error);
+
+    log("warn", "Auto decision WordPress update failed", {
+      correlationId: input.correlationId,
+      eventId: input.eventId,
+      commentId: input.commentId,
+      decision: input.decision,
+      authFailure,
+      message
+    });
+
+    await sendReviewRequest({
+      eventId: input.eventId,
+      site: input.site,
+      commentId: input.commentId,
+      content: input.content,
+      reason: `${input.reason} [auto_apply_failed=${authFailure ? "wp_auth_failed" : "wp_update_failed"}]`,
+      signals: [...input.signals, authFailure ? "wp_auth_failed" : "wp_update_failed"]
+    });
+  }
+}
+
+export function isWordPressUpdateError(error: unknown): error is WordPressUpdateError {
+  return error instanceof WordPressUpdateError;
+}
 
 export async function processWpCommentWebhook(input: WpCommentWebhook, correlationId: string): Promise<void> {
   const selected = await selectModeration({
@@ -38,7 +78,16 @@ export async function processWpCommentWebhook(input: WpCommentWebhook, correlati
     return;
   }
 
-  await updateWordPressCommentStatus(input.comment.id, moderation.decision);
+  await applyAutoDecision({
+    commentId: input.comment.id,
+    decision: moderation.decision,
+    eventId: input.eventId,
+    site: input.site,
+    content: input.comment.content,
+    reason: moderation.reason,
+    signals: moderation.signals,
+    correlationId
+  });
 }
 
 export async function applyModeratorDecision(commentId: number, decision: ModerationDecision): Promise<void> {

@@ -8,7 +8,8 @@ const applyModeratorDecisionMock = vi.fn(async () => undefined);
 
 vi.mock("../src/services/moderation-service", () => ({
   processWpCommentWebhook: processWpCommentWebhookMock,
-  applyModeratorDecision: applyModeratorDecisionMock
+  applyModeratorDecision: applyModeratorDecisionMock,
+  isWordPressUpdateError: vi.fn(() => false)
 }));
 
 function configureTestEnv(): void {

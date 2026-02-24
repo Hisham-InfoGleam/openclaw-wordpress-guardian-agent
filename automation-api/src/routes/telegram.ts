@@ -3,7 +3,7 @@ import { answerTelegramCallback } from "../clients/telegram-client";
 import { env } from "../config/env";
 import { telegramCallbackSchema } from "../schemas/telegram";
 import { isValidTelegramSecret, TELEGRAM_SECRET_HEADER } from "../security/telegram-secret";
-import { applyModeratorDecision } from "../services/moderation-service";
+import { applyModeratorDecision, isWordPressUpdateError } from "../services/moderation-service";
 import { log } from "../utils/logger";
 
 function parseCallbackData(rawData: string): { commentId: number; decision: "approve" | "block" } | null {
@@ -76,8 +76,35 @@ telegramRouter.post("/callback", async (req, res, next) => {
       return res.status(400).json({ error: "invalid_callback_data", correlationId: req.correlationId });
     }
 
-    await applyModeratorDecision(parsed.commentId, parsed.decision);
-    await answerTelegramCallback(callback.id, `Applied decision: ${parsed.decision}`);
+    try {
+      await applyModeratorDecision(parsed.commentId, parsed.decision);
+      await answerTelegramCallback(callback.id, `Applied decision: ${parsed.decision}`);
+    } catch (error) {
+      if (isWordPressUpdateError(error)) {
+        const authFailure = error.status === 401 || error.status === 403;
+        log("warn", "WordPress update failed for telegram decision", {
+          correlationId: req.correlationId,
+          commentId: parsed.commentId,
+          decision: parsed.decision,
+          status: error.status,
+          authFailure
+        });
+
+        await answerTelegramCallback(
+          callback.id,
+          authFailure
+            ? "WordPress auth failed. Check WP_APP_USERNAME and WP_APP_PASSWORD."
+            : "WordPress update failed. Check API connectivity and comment status permissions."
+        );
+
+        return res.status(502).json({
+          error: authFailure ? "wordpress_auth_failed" : "wordpress_update_failed",
+          correlationId: req.correlationId
+        });
+      }
+
+      throw error;
+    }
 
     return res.status(200).json({ status: "ok", correlationId: req.correlationId });
   } catch (error) {
