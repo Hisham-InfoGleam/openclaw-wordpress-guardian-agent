@@ -11,6 +11,41 @@ export type ModerationSelection = {
   moderation: ModerationResult;
 };
 
+function normalizeOpenClawModeration(input: {
+  moderation: ModerationResult;
+  correlationId: string;
+  eventId: string;
+  commentId: number;
+}): ModerationResult {
+  const { moderation } = input;
+
+  if (moderation.decision === "needs_review") {
+    return moderation;
+  }
+
+  const threshold = moderation.decision === "approve" ? env.AUTO_APPROVE_THRESHOLD : env.AUTO_BLOCK_THRESHOLD;
+
+  if (moderation.confidence >= threshold) {
+    return moderation;
+  }
+
+  log("info", "OpenClaw decision downgraded to needs_review due to low confidence", {
+    correlationId: input.correlationId,
+    eventId: input.eventId,
+    commentId: input.commentId,
+    originalDecision: moderation.decision,
+    confidence: moderation.confidence,
+    threshold
+  });
+
+  return {
+    decision: "needs_review",
+    confidence: moderation.confidence,
+    reason: `${moderation.reason} [downgraded_low_confidence]`,
+    signals: moderation.signals.includes("low_confidence") ? moderation.signals : [...moderation.signals, "low_confidence"]
+  };
+}
+
 export async function selectModeration(input: {
   correlationId: string;
   site: string;
@@ -30,7 +65,12 @@ export async function selectModeration(input: {
       return {
         provider: "openclaw",
         model: openclaw.model,
-        moderation: openclaw.moderation
+        moderation: normalizeOpenClawModeration({
+          moderation: openclaw.moderation,
+          correlationId: input.correlationId,
+          eventId: input.eventId,
+          commentId: input.commentId
+        })
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown OpenClaw error";

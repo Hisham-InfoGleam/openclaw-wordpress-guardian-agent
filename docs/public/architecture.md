@@ -37,6 +37,8 @@
   - Validates payload with zod
   - Returns `202` quickly after validation and processes asynchronously
   - Uses configured moderation provider (`MODERATION_PROVIDER`)
+  - In `openclaw` mode, low-confidence `approve|block` results are downgraded to `needs_review` using `AUTO_APPROVE_THRESHOLD` and `AUTO_BLOCK_THRESHOLD`
+  - If OpenClaw provider call fails and `OPENCLAW_FALLBACK_TO_HEURISTIC=true`, route falls back to heuristic moderation
 - `POST /telegram/callback`
   - Requires `x-telegram-bot-api-secret-token`
   - Validates Telegram callback payload with zod

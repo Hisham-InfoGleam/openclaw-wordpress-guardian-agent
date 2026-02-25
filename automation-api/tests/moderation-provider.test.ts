@@ -60,6 +60,64 @@ describe("selectModeration", () => {
     expect(result.moderation.decision).toBe("block");
   });
 
+  it("downgrades OpenClaw approve decision to needs_review when confidence is below approve threshold", async () => {
+    process.env.AUTO_APPROVE_THRESHOLD = "0.9";
+    vi.resetModules();
+
+    runOpenClawModerationMock.mockResolvedValueOnce({
+      model: "openai/o4-mini",
+      moderation: {
+        decision: "approve",
+        confidence: 0.61,
+        reason: "Likely safe",
+        signals: []
+      }
+    });
+
+    const { selectModeration } = await import("../src/services/moderation-provider");
+
+    const result = await selectModeration({
+      correlationId: "corr-1b",
+      site: "infogleam.com",
+      eventId: "evt-1b",
+      commentId: 14,
+      content: "normal discussion comment"
+    });
+
+    expect(result.provider).toBe("openclaw");
+    expect(result.moderation.decision).toBe("needs_review");
+    expect(result.moderation.signals).toContain("low_confidence");
+  });
+
+  it("keeps OpenClaw block decision when confidence meets block threshold", async () => {
+    process.env.AUTO_BLOCK_THRESHOLD = "0.95";
+    vi.resetModules();
+
+    runOpenClawModerationMock.mockResolvedValueOnce({
+      model: "openai/o4-mini",
+      moderation: {
+        decision: "block",
+        confidence: 0.98,
+        reason: "High spam confidence",
+        signals: ["spam_keyword"]
+      }
+    });
+
+    const { selectModeration } = await import("../src/services/moderation-provider");
+
+    const result = await selectModeration({
+      correlationId: "corr-1c",
+      site: "infogleam.com",
+      eventId: "evt-1c",
+      commentId: 15,
+      content: "spam comment"
+    });
+
+    expect(result.provider).toBe("openclaw");
+    expect(result.moderation.decision).toBe("block");
+    expect(result.moderation.signals).toContain("spam_keyword");
+  });
+
   it("falls back to heuristic when OpenClaw fails and fallback enabled", async () => {
     runOpenClawModerationMock.mockRejectedValueOnce(new Error("Gateway unavailable"));
 

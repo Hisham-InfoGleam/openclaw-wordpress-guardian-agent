@@ -132,3 +132,11 @@ If you want customer-visible OpenClaw decision making:
 2. Set `MODERATION_PROVIDER=openclaw` in `automation-api`.
 3. Configure `OPENCLAW_BASE_URL` and `OPENCLAW_GATEWAY_TOKEN`.
 4. Keep `OPENCLAW_FALLBACK_TO_HEURISTIC=true` for resilience.
+
+Decision routing notes:
+
+- `AUTO_APPROVE_THRESHOLD` and `AUTO_BLOCK_THRESHOLD` also govern OpenClaw auto-apply confidence gates.
+- If OpenClaw returns `approve|block` below threshold, API downgrades to `needs_review` and sends Telegram review.
+- If OpenClaw request fails:
+  - with fallback enabled: API uses heuristic moderation;
+  - with fallback disabled: webhook async processing logs failure and requires operator action.
