@@ -55,7 +55,8 @@ See the detailed plan in:
 7. Configure Telegram bot webhook to `POST /telegram/callback`.
 8. Submit test comments and verify Telegram + WordPress status updates.
 
-## Repository Status
+## Repository    Status
 
-Phase 1 and Phase 1.5 are runnable in local/dev with secure webhook flow, Telegram callback handling, OpenClaw-backed moderation provider mode with confidence-based `needs_review` routing, and WordPress action-path fallback handling for auth mismatch failures.
+Phase 1 and Phase 1.5 are runnable 
+in local/dev with secure webhook flow, Telegram callback handling, OpenClaw-backed moderation provider mode with confidence-based `needs_review` routing, and WordPress action-path fallback handling for auth mismatch failures.
 
