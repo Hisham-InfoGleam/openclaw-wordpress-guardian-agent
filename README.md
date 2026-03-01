@@ -60,3 +60,9 @@ See the detailed plan in:
 Phase 1 and Phase 1.5 are runnable 
 in local/dev with secure webhook flow, Telegram callback handling, OpenClaw-backed moderation provider mode with confidence-based `needs_review` routing, and WordPress action-path fallback handling for auth mismatch failures.
 
+
+**Hisham Hussein Alrashdan**  
+For questions or consulting inquiries: hisham@infogleam.com
+
+[www.infogleam.com](https://infogleam.com)
+
